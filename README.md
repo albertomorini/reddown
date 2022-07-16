@@ -23,10 +23,10 @@ For each subreddit/user you can pick the mode like "top" or "new", you can also 
 > installable with pip3
 
 ## Output be like
-![output](https://github.com/albertomorini/reddown/blob/main/img/output.png)
+![output](https://github.com/albertomorini/reddown/blob/main/imgExample/output.png)
 
 
-<a href="https://github.com/albertomorini/reddown/blob/main/img/proofOfWork.png">Proof of work</a>
+<a href="https://github.com/albertomorini/reddown/blob/main/imgExample/proofOfWork.png">Proof of work</a>
 
 ## TODO:
 - [ ] make a GUI
