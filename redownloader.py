@@ -6,7 +6,6 @@ import requests
 from PIL import Image
 from bs4 import *
 
-sys.path.insert(0, '../+utility/')
 import python_utility as pyut
 
 
