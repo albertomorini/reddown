@@ -1,17 +1,25 @@
 # A Reddit downloader
 
-## Usage:
-redDownIt allows you to download images and (some) gif from Reddit.com of a subreddit or user.
+Reddown allows you to download images and (some) gif from <a hfref="reddit.com">Reddit</a>, given a subreddit or user.
+
+## IDEA
+
 Simply download the data that reddit provide us with their JSON (hot.json/top.json/new.json)
 
-For each subreddit/user you can pick the mode like "top" or "new", you can also create a preferences file to store subreddit-mode and user-mode.. At the start you can choose if you want to load/create a JSON or just download files.
+For each subreddit/user you can pick the mode like "top" or "new", you can also create a preferences file to store the subs/users that you want to monitor/download.
 
-- The file preferences should be in the same folder of the program
-- The data will be downloaded in the "./dwn/" folder
+
+### Output
+![output](./imgExample/output.png)
+
+
+![proofOfWork](./imgExample/proofOfWork.png)
+
+## USAGE 
+
+**Don't need a reddit account or any API**
 
 `$ python3 redDownIt.py`
-
-**Don't need for reddit's account**
 
 ## Dependencies:
 - requests
@@ -20,13 +28,9 @@ For each subreddit/user you can pick the mode like "top" or "new", you can also 
 - PIL (//pip3 install Pillow)
 - hashlib
 
-> installable with pip3
+- The file preferences should be in the same folder of the program
+- The data will be downloaded in the "./dwn/" folder
 
-## Output be like
-![output](https://github.com/albertomorini/reddown/blob/main/imgExample/output.png)
-
-
-<a href="https://github.com/albertomorini/reddown/blob/main/imgExample/proofOfWork.png">Proof of work</a>
 
 ## TODO:
 - [ ] make a GUI

@@ -6,22 +6,37 @@ import requests
 from PIL import Image
 from bs4 import *
 
-import python_utility as pyut
+
+REDDIT_URL_SUBS="reddit.com/r/"
+REDDIT_URL_USRS="reddit.com/u/"
+####################################################################
+#UTILITY
+
+def serializeJSON(dir, filename, dataDictionary):
+	with open(dir+"/"+filename,"a", encoding='utf-8') as fileToStore:
+   		json.dump(dataDictionary, fileToStore, ensure_ascii=False)
+
+def readJson(path):
+	with open(path) as dataStored:
+		return json.load(dataStored)
+
+def doMD5(digest):
+	return hashlib.md5(digest.encode()).hexdigest()
 
 
 ####################################################################
+### REDDIT INTERFACE
 
 #download the image provided a link
 # @subreddit is the name of the subreddit we need to create the file's name
 # eg. macsetups--md5(file).jpg
 def downloadImage(link,subreddit):
 	try:
+		##TODO: optimize, check the content type and the encoding of data request
 		extensionFile = link.rsplit(".",1)[1]
 		if(extensionFile == "jpg" or extensionFile == "png" or extensionFile == "gif"):
-
 			response = requests.get(link)
-			fileName = hashlib.md5(link.encode()).hexdigest()
-			fileName=subreddit+"--"+fileName
+			fileName = subreddit+"--"+doMD5(link)
 			print(fileName)
 
 			#create the folder if doesn't exists
@@ -29,29 +44,19 @@ def downloadImage(link,subreddit):
 			    os.mkdir("./dwn/")
 
 			file = open("dwn/"+fileName+"."+extensionFile, "wb")
-			file.write(response.content)
+			file.write(response.content) 
 			file.close()
 
 	except Exception as e:
+		f = open("logs.txt","a")
+		f.write("ERROR: "+e)
+		f.close()
 		pass
 
 
-####################################################################
-# elaborate the subreddit, makes the request
-def getSubreddit(sub,mode):
-	print("downloading: " + sub)
-	url = "https://www.reddit.com/r/"+sub+"/"+mode+".json"
-	x = requests.get(url, headers = {'User-agent': 'alby bot 0.1'}).json()
-	posts = x.get("data").get("children")
-	for i in posts:
-		subreddit= str(i.get("data").get("subreddit"))
-		downloadImage(i.get("data").get("url_overridden_by_dest"), subreddit)
-
-# elaborate the user, makes the request
-def getUser(user,mode):
-	print("downloading: " + user)
-	url = "https://www.reddit.com/u/"+user+"/"+mode+".json"
-	x = requests.get(url, headers = {'User-agent': 'alby bot 0.1'}).json()
+## given an url of a subs/user, fetch the posts then retrieve the link of the photos and download them
+def processPosts(url):
+	x = requests.get(url, headers = {'User-agent': 'alby bot 1.1'}).json()
 	posts = x.get("data").get("children")
 	for i in posts:
 		subreddit= str(i.get("data").get("subreddit"))
@@ -114,29 +119,40 @@ def createDict():
 # @dict is the dictionary holding the list of subs/mode and users/mode
 def processDict(dict):
 	for i in dict.get("subreddit"):
-		getSubreddit(i,dict.get("subreddit")[i]) #compute subreddit i-th
+		print("downloading: " + i)
+		processPosts(REDDIT_URL_SUBS+i+"/"+dict.get("subreddit")[i]+".json")
+
 	for i in dict.get("users"):
-		getUser(i,dict.get("users")[i]) #compute user i-th
+		print("downloading: " + i)
+		processPosts(REDDIT_URL_USRS+i+"/"+dict.get("subreddit")[i]+".json")
+
 
 
 #start the program
-def main():
+def menu():
 	pick=int(input("1) to load/create a preferences \n2) to download without create preferences file\n > "))
+	
 	if(pick==1):
+		nameFile=input("insert the name of the preferences file : ") +".json"
 
-		nameFile=input("what's the name of file's prefereces: ") #insert the file name
-		loadJSON = pyut.read_JSON("./"+nameFile+".json")
-		if(loadJSON!=None):
-			print("loaded preferences.. processing!")
-			processDict(loadJSON)
-		else:
-			print("Error.. switching to creating mode: ")
-			dictTmp=createDict()
-			pyut.serialize_JSON("./",nameFile+".json",dictTmp)
-			processDict(dictTmp)
+		isValid=False
+		while(!isValid && nameFile!="q")
+			if (os.path.exists("./"+nameFile)):
+				loadJSON = readJson("./"+nameFile+".json")
+				if(loadJSON!=None):
+					print("loaded preferences.. processing!")
+					processDict(loadJSON)
+				else:
+					print("Error.. switching to creating mode: ")
+					dictTmp=createDict()
+					serializeJSON("./",nameFile+".json",dictTmp)
+					processDict(dictTmp)
+			else:
+				print("invalid path...\n retry (or insert q to quit)")
+				nameFile=input("insert the name of the preferences file : ") +".json"
 
 	elif(pick==2):
 		processDict(createDict())
 
 
-main()
+menu()
