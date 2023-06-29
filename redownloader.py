@@ -7,8 +7,8 @@ from PIL import Image
 from bs4 import *
 
 
-REDDIT_URL_SUBS="reddit.com/r/"
-REDDIT_URL_USRS="reddit.com/u/"
+REDDIT_URL_SUBS="https://www.reddit.com/r/"
+REDDIT_URL_USRS="https://www.reddit.com/u/"
 ####################################################################
 #UTILITY
 
@@ -38,6 +38,7 @@ def downloadImage(link,subreddit):
 			response = requests.get(link)
 			fileName = subreddit+"--"+doMD5(link)
 			print(fileName)
+			##check if we can download also the complementar of that (like subs if user mode or user if subs mode)
 
 			#create the folder if doesn't exists
 			if(not os.path.exists("./dwn/")):
@@ -136,7 +137,7 @@ def menu():
 		nameFile=input("insert the name of the preferences file : ") +".json"
 
 		isValid=False
-		while(!isValid && nameFile!="q")
+		while(not isValid and nameFile!="q"):
 			if (os.path.exists("./"+nameFile)):
 				loadJSON = readJson("./"+nameFile+".json")
 				if(loadJSON!=None):
