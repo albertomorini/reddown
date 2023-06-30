@@ -13,7 +13,7 @@ REDDIT_URL_USRS="https://www.reddit.com/u/"
 #UTILITY
 
 def serializeJSON(dir, filename, dataDictionary):
-	with open(dir+"/"+filename,"a", encoding='utf-8') as fileToStore:
+	with open(dir+"/"+filename,"w", encoding='utf-8') as fileToStore:
    		json.dump(dataDictionary, fileToStore, ensure_ascii=False)
 
 def readJson(path):
@@ -30,13 +30,13 @@ def doMD5(digest):
 #download the image provided a link
 # @subreddit is the name of the subreddit we need to create the file's name
 # eg. macsetups--md5(file).jpg
-def downloadImage(link,subreddit):
+def downloadImage(urlImage,postTitle,subPosted,authorOP):
 	try:
 		##TODO: optimize, check the content type and the encoding of data request
-		extensionFile = link.rsplit(".",1)[1]
+		extensionFile = urlImage.rsplit(".",1)[1]
 		if(extensionFile == "jpg" or extensionFile == "png" or extensionFile == "gif"):
-			response = requests.get(link)
-			fileName = subreddit+"--"+doMD5(link)
+			response = requests.get(urlImage)
+			fileName = subPosted+"--"+doMD5(urlImage)
 			print(fileName)
 			##check if we can download also the complementar of that (like subs if user mode or user if subs mode)
 
@@ -60,11 +60,16 @@ def processPosts(url):
 	x = requests.get(url, headers = {'User-agent': 'alby bot 1.1'}).json()
 	posts = x.get("data").get("children")
 	for i in posts:
-		subreddit= str(i.get("data").get("subreddit"))
-		downloadImage(i.get("data").get("url_overridden_by_dest"), subreddit)
+		dataBody = i.get("data") #get the data of the body
+		subPosted= str(dataBody.get("subreddit"))
+		authorOP = dataBody.get("author_fullname")
+		postTitle = dataBody.get("title")
+		downloadImage(str(dataBody.get("url_overridden_by_dest"), postTitle, subPosted, authorOP)
 
 
 ####################################################################
+# PREFERENCES STUFF (CREATING/UPDATING DICT)
+
 # add a subs to the dict
 def addSub(target,mode,dictPref):
 	dictPref["sub"][target]=mode
@@ -78,39 +83,29 @@ def addUser(target,mode,dictPref):
 # @mode is a integer between 1 and 3
 # @return a string
 def modeConverter(mode):
-	res = None
-	if(mode==1):
-		res = "hot"
-	elif(mode==2):
-		res ="top"
-	elif(mode==3):
-		res = "new"
-	return res
+	association = {
+		1: "hot",
+		2: "top",
+		3: "new"
+	}
+	return association[mode]
 
 
 # create a dictionar
-def createDict():
-	target = int(input("1)subreddit \n2)reddit user\n > "))
+def createDict(dictTargets):
+	choice = int(input("0) cancel \n1) subreddit \n2) user\n > "))
 
-	dictTargets = {"subreddit":{},"users":{}}
-	choice = 1
-	while int(choice)>0:
-		if(target==1):
-			tmpInsert= input("Add a subreddit: (eg. 'macstups')\n>")
-			mode = int(input("1)hot \n2)top\n3)new \n > "))
-			mode = modeConverter(mode)
-			dictTargets.get("subreddit")[tmpInsert]=mode
-			choice = input("To start downloading press 0\nTo add another subreddit press 1\nTo add user press 2\n > ")
-			if(int(choice)==2):
-				target=2
-		else:
-			tmpInsert= input("Add an user: (just the nickname)\n>")
-			mode = int(input("1)hot \n2)top\n3)new \n > "))
-			mode = modeConverter(mode)
-			dictTargets.get("users")[tmpInsert]=mode
-			choice = input("To start downloading press 0\nTo add another user press 1\nTo add a subreddit press 2\n > ")
-			if(int(choice)==2):
-				target=1
+	if(dictTargets==None):
+		dictTargets = {"subreddit":{},"users":{}}
+	while choice>0:
+		name = input("Insert the name to add: \n>")
+		mode = int(input("1)hot \n2)top\n3)new \n > "))
+		if(choice==1): ## add a sub
+			dictTargets.get("subreddit")[name]=modeConverter(mode)
+		elif(choice==2): ##add a user
+			dictTargets.get("users")[name]=modeConverter(mode)
+		
+		choice = int(input("0) start download \n1) add a subreddit \n2) add a user\n > "))
 
 	return dictTargets
 
@@ -125,35 +120,39 @@ def processDict(dict):
 
 	for i in dict.get("users"):
 		print("downloading: " + i)
-		processPosts(REDDIT_URL_USRS+i+"/"+dict.get("subreddit")[i]+".json")
+		processPosts(REDDIT_URL_USRS+i+"/"+dict.get("users")[i]+".json")
 
 
 
-#start the program
+## print the menu to user, so chose how to manage the preferences (storing/updating/volatile)
 def menu():
-	pick=int(input("1) to load/create a preferences \n2) to download without create preferences file\n > "))
-	
-	if(pick==1):
-		nameFile=input("insert the name of the preferences file : ") +".json"
-
+	pick=int(input("1) create a preferences file \n2) update an preferences  \n3) to download without create a register\n > "))
+	print("\n-----------------")
+	if(pick==1): ## CREATING MODE
+		nameFile=input("insert the name the preferences file: ") +".json"
+		dictTmp=createDict(None)
+		serializeJSON("./",nameFile,dictTmp)
+		processDict(dictTmp)
+	elif(pick==2): ## UPDATING 
+		nameFile=input("insert the name the preferences file: ") +".json"
 		isValid=False
 		while(not isValid and nameFile!="q"):
 			if (os.path.exists("./"+nameFile)):
-				loadJSON = readJson("./"+nameFile+".json")
-				if(loadJSON!=None):
-					print("loaded preferences.. processing!")
-					processDict(loadJSON)
-				else:
-					print("Error.. switching to creating mode: ")
-					dictTmp=createDict()
-					serializeJSON("./",nameFile+".json",dictTmp)
-					processDict(dictTmp)
-			else:
-				print("invalid path...\n retry (or insert q to quit)")
-				nameFile=input("insert the name of the preferences file : ") +".json"
-
-	elif(pick==2):
-		processDict(createDict())
+				prefLoaded = readJson("./"+nameFile)
+				newPreferences = createDict(prefLoaded)
+				serializeJSON("./",nameFile,newPreferences)
+				print("Updated! \n\t ...Downloading...")
+				processDict(newPreferences)
+	elif(pick==3): ## NO STORE
+		processDict(createDict(None))
 
 
-menu()
+#start the program
+def main():
+	print("Welcome on reddown")
+	if(len(sys.argv)>1): #path passed
+		processDict(readJson(sys.argv[1])) #process the dict passed by parameter
+	else:
+		menu()
+	
+main()
