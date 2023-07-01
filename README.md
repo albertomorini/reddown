@@ -18,6 +18,7 @@ For each subreddit/user you can pick the mode like "top" or "new", you can also 
 ## USAGE 
 
 **Don't need a reddit account or any API**
+> Works even with NSFW content
 
 `$ python3 redDownIt.py`
 
