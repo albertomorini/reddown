@@ -6,6 +6,8 @@ import requests
 from PIL import Image
 from bs4 import *
 import datetime as dt
+import imageio
+
 
 
 REDDIT_URL_SUBS="https://www.reddit.com/r/"
@@ -27,11 +29,19 @@ def doMD5(digest):
 
 
 def writeLog(scope,message):
-	f = open("./reddown.txt","a")
-	f.write(dt.datetime.now()+"-"+scope+"-"+message)
+	f = open("./reddown_log.txt","a")
+	f.write(str(dt.datetime.now())+"-"+scope+"-"+str(message)+"\n")
 
 ####################################################################
 ### REDDIT INTERFACE
+
+def getExtensionSupported(ext):
+	supported=["jpg","png","gif","gifv"]
+	if ext in supported:
+		return True
+	else:
+		return False
+
 
 #download the image provided a link
 # @subreddit is the name of the subreddit we need to create the file's name
@@ -39,11 +49,10 @@ def writeLog(scope,message):
 def downloadImage(urlImage,postTitle,subPosted,authorOP):
 	try:
 		extensionFile = urlImage.rsplit(".",1)[1]
-		if(extensionFile == "jpg" or extensionFile == "png" or extensionFile == "gif"):
+		if(getExtensionSupported(extensionFile)):
 			imageContent = requests.get(urlImage).content
-			fileName = postTitle[:10] + "by ["+authorOP+"] on "+subPosted
+			fileName = postTitle[:30] + " - by ["+authorOP+"] on "+subPosted
 			print(fileName)
-			##check if we can download also the complementar of that (like subs if user mode or user if subs mode)
 
 			#create the folder if doesn't exists
 			if(not os.path.exists("./dwn/")):
@@ -52,6 +61,7 @@ def downloadImage(urlImage,postTitle,subPosted,authorOP):
 			file = open("dwn/"+fileName+"."+extensionFile, "wb")
 			file.write(imageContent) 
 			file.close()
+
 
 	except Exception as e:
 		writeLog("ERROR",e)
@@ -66,16 +76,16 @@ def processPosts(url):
 		subPosted= str(dataBody.get("subreddit"))
 		authorOP = dataBody.get("author_fullname")
 		postTitle = dataBody.get("title")
-		downloadImage(str(dataBody.get("url_overridden_by_dest"), postTitle, subPosted, authorOP)
+		urlImage = str(dataBody.get("url_overridden_by_dest"))
+		if(not url == None):
+			downloadImage(urlImage, postTitle, subPosted, authorOP)
 
 
 ####################################################################
 # PREFERENCES STUFF (CREATING/UPDATING DICT)
 
 
-# convert the number into a type (hot/top/new etc)
-# @mode is a integer between 1 and 3
-# @return a string
+# return the type (hot/top/new) given the number in the preferences
 def modeConverter(mode):
 	association = {
 		1: "hot",
@@ -85,7 +95,8 @@ def modeConverter(mode):
 	return association[mode]
 
 
-# create a dictionar
+# create or update the preferences given via parameters 
+# @prefDict {dict} -> if empty we're in creation mode
 def createUpdateDict(prefDict):
 	choice = int(input("0) cancel \n1) subreddit \n2) user\n > "))
 
@@ -107,7 +118,7 @@ def createUpdateDict(prefDict):
 
 # split into: processing subreddit and processing users
 # @dict is the dictionary holding the list of subs/mode and users/mode
-def processDict(dict):
+def processPref(dict):
 	for i in dict.get("subreddit"): ##process the subs
 		print("downloading: " + i)
 		processPosts(REDDIT_URL_SUBS+i+"/"+dict.get("subreddit")[i]+".json")
@@ -120,14 +131,19 @@ def processDict(dict):
 
 ## print the menu to user, so chose how to manage the preferences (storing/updating/volatile)
 def menu():
-	pick=int(input("1) create a preferences file \n2) update an preferences  \n3) to download without create a register\n > "))
+	pick=int(input("1) load a preferences \n2) create a preferences file \n3) update an preferences  \n4) to download without create a register\n > "))
 	print("\n-----------------")
+	
+
 	if(pick==1): ## CREATING MODE
+		nameFile=input("insert the name the preferences file: ") +".json"
+		processPref(readJson("./"+nameFile))
+	if(pick==2): ## CREATING MODE
 		nameFile=input("insert the name the preferences file: ") +".json"
 		dictTmp=createUpdateDict(None)
 		serializeJSON("./",nameFile,dictTmp) #save the preferences
-		processDict(dictTmp) # process the dict
-	elif(pick==2): ## UPDATING 
+		processPref(dictTmp) # process the dict
+	elif(pick==3): ## UPDATING 
 		nameFile=input("insert the name the preferences file: ") +".json"
 		isValid=False
 		while(not isValid and nameFile!="q"):
@@ -136,19 +152,19 @@ def menu():
 				newPreferences = createUpdateDict(prefLoaded)
 				serializeJSON("./",nameFile,newPreferences)
 				print("Updated! \n\t ...Downloading...")
-				processDict(newPreferences)
+				processPref(newPreferences)
 			else:
 				writeLog("WARNING","preferences not found with name: "+nameFile)
 				print("Preferences not found with name: "+nameFile)
-	elif(pick==3): ## NO STORE
-		processDict(createUpdateDict(None))
+	elif(pick==4): ## NO STORE
+		processPref(createUpdateDict(None))
 
 
 #start the program
 def main():
 	print("Welcome on reddown")
 	if(len(sys.argv)>1): #path passed
-		processDict(readJson(sys.argv[1])) #process the dict passed by parameter
+		processPref(readJson(sys.argv[1])) #process the dict passed by parameter
 	else:
 		menu()
 	
