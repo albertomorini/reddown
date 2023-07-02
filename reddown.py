@@ -6,7 +6,8 @@ import requests
 from PIL import Image
 from bs4 import *
 import datetime as dt
-import imageio
+import wget
+
 
 
 
@@ -35,7 +36,7 @@ def writeLog(scope,message):
 ####################################################################
 ### REDDIT INTERFACE
 
-def getExtensionSupported(ext):
+def isExtensionSupported(ext):
 	supported=["jpg","png","gif","gifv"]
 	if ext in supported:
 		return True
@@ -43,14 +44,32 @@ def getExtensionSupported(ext):
 		return False
 
 
+
+def download_file(url):
+    local_filename = url.split('/')[-1]
+    # NOTE the stream=True parameter below
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                # If you have chunk encoded response uncomment if
+                # and set chunk_size parameter to None.
+                #if chunk: 
+                f.write(chunk)
+    return local_filename
+
 #download the image provided a link
 # @subreddit is the name of the subreddit we need to create the file's name
 # eg. macsetups--md5(file).jpg
 def downloadImage(urlImage,postTitle,subPosted,authorOP):
 	try:
-		extensionFile = urlImage.rsplit(".",1)[1]
-		if(getExtensionSupported(extensionFile)):
-			imageContent = requests.get(urlImage).content
+		extension = urlImage.rsplit(".",1)[1]
+		if(isExtensionSupported(extension)):
+			if(extension=="gifv"):
+				#download_file(urlImage)
+				print(urlImage)
+			else:
+				mediaToDownload = requests.get(urlImage).content
 			fileName = postTitle[:30] + " - by ["+authorOP+"] on "+subPosted
 			print(fileName)
 
@@ -58,9 +77,11 @@ def downloadImage(urlImage,postTitle,subPosted,authorOP):
 			if(not os.path.exists("./dwn/")):
 			    os.mkdir("./dwn/")
 
-			file = open("dwn/"+fileName+"."+extensionFile, "wb")
-			file.write(imageContent) 
+			
+			file = open("dwn/"+fileName+"."+extension, "wb")
+			file.write(mediaToDownload) 
 			file.close()
+				
 
 
 	except Exception as e:
