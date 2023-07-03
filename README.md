@@ -23,11 +23,11 @@ For each subreddit/user you can pick the mode like "top" or "new", you can also 
 `$ python3 redDownIt.py`
 
 ## Dependencies:
-- requests
-- bs4
 - os
-- PIL (//pip3 install Pillow)
-- hashlib
+- sys
+- json
+- requests
+- datetime as dt
 
 - The file preferences should be in the same folder of the program
 - The data will be downloaded in the "./dwn/" folder

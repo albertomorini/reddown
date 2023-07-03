@@ -1,18 +1,14 @@
 import os
 import sys
 import json
-import hashlib
 import requests
-from PIL import Image
-from bs4 import *
 import datetime as dt
-import wget
 
-
-
-
+####################################################################
+# CONSTANT
 REDDIT_URL_SUBS="https://www.reddit.com/r/"
 REDDIT_URL_USRS="https://www.reddit.com/u/"
+ExtensionSupported=["jpg","png","gif","gifv","mp4"]
 
 ####################################################################
 #UTILITY
@@ -25,9 +21,8 @@ def readJson(path):
 	with open(path) as dataStored:
 		return json.load(dataStored)
 
-def doMD5(digest):
-	return hashlib.md5(digest.encode()).hexdigest()
-
+def readJsonData(rawData):
+	return json.load(rawData)
 
 def writeLog(scope,message):
 	f = open("./reddown_log.txt","a")
@@ -36,70 +31,63 @@ def writeLog(scope,message):
 ####################################################################
 ### REDDIT INTERFACE
 
-def isExtensionSupported(ext):
-	supported=["jpg","png","gif","gifv"]
-	if ext in supported:
-		return True
-	else:
-		return False
+## WORKAROUND FOR IMGUR GIFV
+def processGifv(urlIMGUR):
+	''' TODO: try with json content-type
+	tmp = readJsonData(requests.get(urlIMGUR).json())
+	tmp = readJsonData(tmp.get("reddit_video_preview"))
+	print(tmp.get("fallback_url")+"\n\n\n")
+	print("----")
+	'''
+	contentGifv = requests.get(urlIMGUR).content # the request return us the HTML page
+	mp4url = str(str(contentGifv).split('meta property="og:video:secure_url"  content="')[1]).split('" />')[0] # retrieve the url of mp4 video
+	return mp4url
 
-
-
-def download_file(url):
-    local_filename = url.split('/')[-1]
-    # NOTE the stream=True parameter below
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192): 
-                # If you have chunk encoded response uncomment if
-                # and set chunk_size parameter to None.
-                #if chunk: 
-                f.write(chunk)
-    return local_filename
 
 #download the image provided a link
 # @subreddit is the name of the subreddit we need to create the file's name
 # eg. macsetups--md5(file).jpg
-def downloadImage(urlImage,postTitle,subPosted,authorOP):
-	try:
-		extension = urlImage.rsplit(".",1)[1]
-		if(isExtensionSupported(extension)):
-			if(extension=="gifv"):
-				#download_file(urlImage)
-				print(urlImage)
-			else:
-				mediaToDownload = requests.get(urlImage).content
-			fileName = postTitle[:30] + " - by ["+authorOP+"] on "+subPosted
-			print(fileName)
+def downloadImage(mediaURL,postTitle,authorOP):
+	extension = mediaURL.rsplit(".",1)[1]
+	if(extension in ExtensionSupported):
+		if(extension=="gifv"): # workaround for git
+			mediaToDownload= requests.get(processGifv(mediaURL)).content
+			extension="mp4" # we'll store a MP4
+		else:
+			mediaToDownload = requests.get(mediaURL).content
+		
+		fileName = postTitle[:40] + " - by [" + authorOP + "]"
+	
+		print(fileName)
 
-			#create the folder if doesn't exists
-			if(not os.path.exists("./dwn/")):
-			    os.mkdir("./dwn/")
-
-			
-			file = open("dwn/"+fileName+"."+extension, "wb")
-			file.write(mediaToDownload) 
-			file.close()
+		#create the folder if doesn't exists
+		if(not os.path.exists("./dwn/")):
+			os.mkdir("./dwn/")
+		
+		file = open("dwn/"+fileName+"."+extension, "wb")
+		file.write(mediaToDownload) 
+		file.close()
 				
-
-
-	except Exception as e:
-		writeLog("ERROR",e)
 
 
 ## given an url of a subs/user, fetch the posts then retrieve the link of the photos and download them
 def processPosts(url):
 	x = requests.get(url, headers = {'User-agent': 'alby bot 1.1'}).json()
-	posts = x.get("data").get("children")
-	for i in posts:
-		dataBody = i.get("data") #get the data of the body
-		subPosted= str(dataBody.get("subreddit"))
-		authorOP = dataBody.get("author_fullname")
-		postTitle = dataBody.get("title")
-		urlImage = str(dataBody.get("url_overridden_by_dest"))
-		if(not url == None):
-			downloadImage(urlImage, postTitle, subPosted, authorOP)
+	try:
+		if(x.get("kind")=="Listing"):
+			posts = x.get("data").get("children")
+
+			for i in posts:
+				dataBody = i.get("data") #get the data of the body
+				print(dataBody)
+				authorOP = dataBody.get("author_fullname").replace("/","-")
+				postTitle = dataBody.get("title").replace("/","-")
+				mediaURL = str(dataBody.get("url_overridden_by_dest"))
+				if(not url == None):
+					downloadImage(mediaURL, postTitle, authorOP)
+	except Exception as e:
+		writeLog("ERROR","user/subs probably doesn't exists "+url)
+
 
 
 ####################################################################
