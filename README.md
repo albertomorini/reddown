@@ -1,6 +1,16 @@
 # A Reddit downloader
 
-Reddown allows you to download images and (some) gif from <a hfref="reddit.com">Reddit</a>, given a subreddit or user.
+Reddown allows you to download images and gif from <a href="reddit.com">Reddit</a>, given a subreddit or user.
+
+Works with:
+
+- images (jpg,png,... dunno if Reddit has others extension)
+- gif
+- gifv (an <a href="imgur.com">Imgur</a> format, I've thought a workaround to retrieve the mp4 inside the page, not the best but it works)
+
+> 🆓 **No Reddit account needed**
+
+> 🔞 **Works with NSFW**
 
 ## IDEA
 
@@ -9,16 +19,10 @@ Simply download the data that reddit provide us with their JSON (hot.json/top.js
 For each subreddit/user you can pick the mode like "top" or "new", you can also create a preferences file to store the subs/users that you want to monitor/download.
 
 
-### Output
-![output](./imgExample/output.png)
-
-
-![proofOfWork](./imgExample/proofOfWork.png)
+### Example
+![example](./imgExample/example.png)
 
 ## USAGE 
-
-**Don't need a reddit account or any API**
-> Works even with NSFW content
 
 `$ python3 redDownIt.py`
 
@@ -29,7 +33,7 @@ For each subreddit/user you can pick the mode like "top" or "new", you can also 
 - requests
 - datetime as dt
 
-- The file preferences should be in the same folder of the program
+- The file preferences have to be in the same folder of the program
 - The data will be downloaded in the "./dwn/" folder
 
 
@@ -37,6 +41,6 @@ For each subreddit/user you can pick the mode like "top" or "new", you can also 
 - [ ] make a GUI
 - [X] create folder "dwn" if doesn't exists
 - [X] import JSON prefereces
-- [ ] download video
+- [X] download video
 - [ ] download album of images
 - [ ] search user/subreddit

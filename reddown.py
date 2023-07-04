@@ -33,30 +33,22 @@ def writeLog(scope,message):
 
 ## WORKAROUND FOR IMGUR GIFV
 def processGifv(urlIMGUR):
-	''' TODO: try with json content-type
-	tmp = readJsonData(requests.get(urlIMGUR).json())
-	tmp = readJsonData(tmp.get("reddit_video_preview"))
-	print(tmp.get("fallback_url")+"\n\n\n")
-	print("----")
-	'''
 	contentGifv = requests.get(urlIMGUR).content # the request return us the HTML page
 	mp4url = str(str(contentGifv).split('meta property="og:video:secure_url"  content="')[1]).split('" />')[0] # retrieve the url of mp4 video
 	return mp4url
 
 
-#download the image provided a link
-# @subreddit is the name of the subreddit we need to create the file's name
-# eg. macsetups--md5(file).jpg
-def downloadImage(mediaURL,postTitle,authorOP):
+# Download the content media
+def downloadMedia(mediaURL,postTitle,subPosted):
 	extension = mediaURL.rsplit(".",1)[1]
 	if(extension in ExtensionSupported):
-		if(extension=="gifv"): # workaround for git
+		if(extension=="gifv"): # workaround for gifv
 			mediaToDownload= requests.get(processGifv(mediaURL)).content
 			extension="mp4" # we'll store a MP4
 		else:
 			mediaToDownload = requests.get(mediaURL).content
 		
-		fileName = postTitle[:40] + " - by [" + authorOP + "]"
+		fileName = postTitle[:40] + " - on [" + subPosted + "]"
 	
 		print(fileName)
 
@@ -73,20 +65,19 @@ def downloadImage(mediaURL,postTitle,authorOP):
 ## given an url of a subs/user, fetch the posts then retrieve the link of the photos and download them
 def processPosts(url):
 	x = requests.get(url, headers = {'User-agent': 'alby bot 1.1'}).json()
-	try:
-		if(x.get("kind")=="Listing"):
-			posts = x.get("data").get("children")
+	if(x.get("kind")=="Listing"):
+		posts = x.get("data").get("children")
 
-			for i in posts:
-				dataBody = i.get("data") #get the data of the body
-				print(dataBody)
-				authorOP = dataBody.get("author_fullname").replace("/","-")
-				postTitle = dataBody.get("title").replace("/","-")
-				mediaURL = str(dataBody.get("url_overridden_by_dest"))
-				if(not url == None):
-					downloadImage(mediaURL, postTitle, authorOP)
-	except Exception as e:
-		writeLog("ERROR","user/subs probably doesn't exists "+url)
+		for i in posts:
+			dataBody = i.get("data") #get the data of the body
+			subPosted = dataBody.get("subreddit").replace("/","-")
+			postTitle = dataBody.get("title").replace("/","-")
+			mediaURL = dataBody.get("url_overridden_by_dest")
+			if(mediaURL != None):
+				downloadMedia(mediaURL, postTitle, subPosted)
+	
+	#except Exception as e:
+	#	writeLog("ERROR","user/subs probably doesn't exists "+url)
 
 
 
@@ -140,32 +131,32 @@ def processPref(dict):
 
 ## print the menu to user, so chose how to manage the preferences (storing/updating/volatile)
 def menu():
-	pick=int(input("1) load a preferences \n2) create a preferences file \n3) update an preferences  \n4) to download without create a register\n > "))
+	choice=int(input("1) load a preferences \n2) create a preferences file \n3) update an preferences  \n4) to download without create a register\n > "))
 	print("\n-----------------")
 	
 
-	if(pick==1): ## CREATING MODE
-		nameFile=input("insert the name the preferences file: ") +".json"
-		processPref(readJson("./"+nameFile))
-	if(pick==2): ## CREATING MODE
-		nameFile=input("insert the name the preferences file: ") +".json"
+	if(choice==1): ## CREATING MODE
+		prefName=input("insert the name the preferences file: ") +".json"
+		processPref(readJson("./"+prefName))
+	if(choice==2): ## CREATING MODE
+		prefName=input("insert the name the preferences file: ") +".json"
 		dictTmp=createUpdateDict(None)
-		serializeJSON("./",nameFile,dictTmp) #save the preferences
+		serializeJSON("./",prefName,dictTmp) #save the preferences
 		processPref(dictTmp) # process the dict
-	elif(pick==3): ## UPDATING 
-		nameFile=input("insert the name the preferences file: ") +".json"
+	elif(choice==3): ## UPDATING 
+		prefName=input("insert the name the preferences file: ") +".json"
 		isValid=False
-		while(not isValid and nameFile!="q"):
-			if (os.path.exists("./"+nameFile)):
-				prefLoaded = readJson("./"+nameFile)
+		while(not isValid and prefName!="q"):
+			if (os.path.exists("./"+prefName)):
+				prefLoaded = readJson("./"+prefName)
 				newPreferences = createUpdateDict(prefLoaded)
-				serializeJSON("./",nameFile,newPreferences)
+				serializeJSON("./",prefName,newPreferences)
 				print("Updated! \n\t ...Downloading...")
 				processPref(newPreferences)
 			else:
-				writeLog("WARNING","preferences not found with name: "+nameFile)
-				print("Preferences not found with name: "+nameFile)
-	elif(pick==4): ## NO STORE
+				writeLog("WARNING","preferences not found with name: "+prefName)
+				print("Preferences not found with name: "+prefName)
+	elif(choice==4): ## NO STORE
 		processPref(createUpdateDict(None))
 
 
